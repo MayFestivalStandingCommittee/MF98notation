@@ -1,101 +1,278 @@
-import Image from "next/image";
+'use client';
+
+import expressions from '@/data/expressions.json';
+import { useMemo, useState } from 'react';
+
+// 各ルールの型定義
+type ExpressionRule = {
+  wrong: string[];
+  correct: string[];
+};
+
+type ExpressionsData = {
+  [key: string]: ExpressionRule;
+};
+
+export type Match = {
+  start: number;
+  end: number;
+  ruleKey: string;
+  wrongText: string;
+  suggested: string;
+};
+
+// 正規表現で特殊文字をエスケープする補助関数
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 入力テキスト内の各誤表記のマッチ情報を取得する関数
+function findMatches(text: string, rules: ExpressionsData): Match[] {
+  const matches: Match[] = [];
+  Object.entries(rules).forEach(([key, rule]) => {
+    rule.wrong.forEach((wrong) => {
+      const regex = new RegExp(escapeRegExp(wrong), 'g');
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        matches.push({
+          start: match.index,
+          end: match.index + wrong.length,
+          ruleKey: key,
+          wrongText: match[0],
+          // 正しい表記は候補の先頭を採用
+          suggested: rule.correct[0],
+        });
+      }
+    });
+  });
+  // マッチ位置でソート
+  matches.sort((a, b) => a.start - b.start);
+  return matches;
+}
+
+// 個別の誤表記を置換できるよう、ホバー時にツールップを表示するコンポーネント
+function HighlightSpan({
+  match,
+  children,
+  onReplace,
+}: {
+  match: Match;
+  children: React.ReactNode;
+  onReplace: () => void;
+}) {
+  return (
+    <span className="bg-blue-100 cursor-pointer relative group rounded px-1 line-through">
+      {children}
+      <div className="absolute z-10 bottom-full left-0 mb-1 hidden group-hover:block">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onReplace();
+          }}
+          className="bg-blue-500 text-white text-xs px-2 py-1 rounded shadow"
+        >
+          置換
+        </button>
+      </div>
+    </span>
+  );
+}
+
+// テキストとマッチ情報から、ハイライト表示用の React ノード群を生成
+function highlightText(
+  text: string,
+  matches: Match[],
+  onReplaceOccurrence: (match: Match) => void,
+) {
+  const nodes = [];
+  let lastIndex = 0;
+  matches.forEach((match, i) => {
+    // 重なりがあればスキップ
+    if (match.start < lastIndex) return;
+    // マッチ手前のテキスト
+    if (match.start > lastIndex) {
+      nodes.push(text.substring(lastIndex, match.start));
+    }
+    // 個別置換可能なハイライト部分
+    nodes.push(
+      <HighlightSpan
+        key={i}
+        match={match}
+        onReplace={() => onReplaceOccurrence(match)}
+      >
+        {text.substring(match.start, match.end)}
+      </HighlightSpan>,
+    );
+    lastIndex = match.end;
+  });
+  // 最後の余りテキスト
+  if (lastIndex < text.length) {
+    nodes.push(text.substring(lastIndex));
+  }
+  return nodes;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // テキストエリアの内容（かつ置換対象のテキスト）を管理
+  const [text, setText] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+  // 入力テキストの変更ハンドラ
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+  };
+
+  // 現在のテキストからマッチ情報を算出（メモ化）
+  const matches = useMemo(
+    () => findMatches(text, expressions as ExpressionsData),
+    [text],
+  );
+
+  // 各ルールごとに、出現回数や誤表記例の集合を集計
+  const errorGroups = useMemo(() => {
+    const groups: {
+      [key: string]: {
+        count: number;
+        suggested: string;
+        wrongExamples: Set<string>;
+      };
+    } = {};
+    matches.forEach((match) => {
+      if (!groups[match.ruleKey]) {
+        groups[match.ruleKey] = {
+          count: 0,
+          suggested: match.suggested,
+          wrongExamples: new Set(),
+        };
+      }
+      groups[match.ruleKey].count += 1;
+      groups[match.ruleKey].wrongExamples.add(match.wrongText);
+    });
+    return groups;
+  }, [matches]);
+
+  // 個別の誤表記を置換する処理
+  const replaceOccurrence = (match: Match) => {
+    // ※レンダリング時のインデックスに基づく置換。置換後は再レンダリングで再計算される
+    setText(
+      (prev) =>
+        prev.slice(0, match.start) + match.suggested + prev.slice(match.end),
+    );
+  };
+
+  // 指定のルールに対して、テキスト中の該当する誤表記を正しい表記に置換する処理
+  const replaceRule = (ruleKey: string) => {
+    const rule = expressions[ruleKey] as ExpressionRule;
+    const wrongVariants = rule.wrong;
+    const correctText = rule.correct[0];
+    let newText = text;
+    wrongVariants.forEach((variant) => {
+      const regex = new RegExp(escapeRegExp(variant), 'g');
+      newText = newText.replace(regex, correctText);
+    });
+    setText(newText);
+  };
+
+  // 全ルールに対して一括置換する処理
+  const replaceAll = () => {
+    let newText = text;
+    Object.entries(expressions as ExpressionsData).forEach(([, rule]) => {
+      rule.wrong.forEach((variant) => {
+        const regex = new RegExp(escapeRegExp(variant), 'g');
+        newText = newText.replace(regex, rule.correct[0]);
+      });
+    });
+    setText(newText);
+  };
+
+  // クリップボードに置換後テキストをコピーする処理
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('置換文をコピーしました');
+    } catch (err) {
+      alert('コピーに失敗しました' + err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen p-12">
+      <h1 className="text-3xl font-bold mb-4">notation</h1>
+      <div className="flex gap-8">
+        <main className="w-[60vw]">
+          <textarea
+            className="w-full h-40 p-2 border border-gray-300 rounded mb-4"
+            placeholder="テキストを入力..."
+            value={text}
+            onChange={handleInputChange}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xl font-semibold">置換プレビュー</h2>
+              <button
+                onClick={copyToClipboard}
+                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+              >
+                コピー
+              </button>
+            </div>
+            <div className="p-2 border border-gray-300 rounded whitespace-pre-wrap">
+              {highlightText(text, matches, replaceOccurrence)}
+            </div>
+          </div>
+        </main>
+        <aside className="">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold mb-2">誤表記一覧</h2>
+            {Object.keys(errorGroups).length === 0 ? (
+              <p>誤表記は見つかりませんでした</p>
+            ) : (
+              <table className="min-w-full border border-gray-300">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-2">誤表記例</th>
+                    <th className="border border-gray-300 p-2">回数</th>
+                    <th className="border border-gray-300 p-2">正しい表記</th>
+                    <th className="border border-gray-300 p-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(errorGroups).map(([ruleKey, group]) => (
+                    <tr key={ruleKey}>
+                      <td className="border border-gray-300 p-2">
+                        {Array.from(group.wrongExamples).join(', ')}
+                      </td>
+                      <td className="border border-gray-300 p-2 text-center">
+                        {group.count}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        {group.suggested}
+                      </td>
+                      <td className="border border-gray-300 p-2">
+                        <button
+                          onClick={() => replaceRule(ruleKey)}
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                        >
+                          置換
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="w-[30vw]">
+            <button
+              onClick={replaceAll}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full"
+            >
+              全部置換
+            </button>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
