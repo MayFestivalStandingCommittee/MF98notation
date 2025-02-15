@@ -36,7 +36,8 @@ function findMatches(text: string, rules: ExpressionsData): Match[] {
       while ((match = regex.exec(text)) !== null) {
         matches.push({
           start: match.index,
-          end: match.index + wrong.length,
+          // wrongの先読み条件削除
+          end: match.index + wrong.replace(/\(\?.*\)/, '').length,
           ruleKey: key,
           wrongText: match[0],
           // 正しい表記は候補の先頭を採用
