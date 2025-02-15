@@ -21,13 +21,19 @@ export type Match = {
   suggested: string;
 };
 
+// 正規表現で特殊文字をエスケープする補助関数
+function escapeRegExp(text: string): string {
+  return text
+}
+
 // 入力テキスト内の各誤表記のマッチ情報を取得する関数
 function findMatches(text: string, rules: ExpressionsData): Match[] {
   const matches: Match[] = [];
   Object.entries(rules).forEach(([key, rule]) => {
     rule.wrong.forEach((wrong) => {
+      const regex = new RegExp(escapeRegExp(wrong), 'g');
       let match;
-      while ((match = wrong.exec(text)) !== null) {
+      while ((match = regex.exec(text)) !== null) {
         matches.push({
           start: match.index,
           end: match.index + wrong.length,
@@ -160,7 +166,8 @@ export default function Home() {
     const correctText = rule.correct[0];
     let newText = text;
     wrongVariants.forEach((variant) => {
-      newText = newText.replace(variant, correctText);
+      const regex = new RegExp(escapeRegExp(variant), 'g');
+      newText = newText.replace(regex, correctText);
     });
     setText(newText);
   };
@@ -170,7 +177,8 @@ export default function Home() {
     let newText = text;
     Object.entries(expressions as ExpressionsData).forEach(([, rule]) => {
       rule.wrong.forEach((variant) => {
-        newText = newText.replace(variant, rule.correct[0]);
+        const regex = new RegExp(escapeRegExp(variant), 'g');
+        newText = newText.replace(regex, rule.correct[0]);
       });
     });
     setText(newText);
