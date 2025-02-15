@@ -18,7 +18,7 @@ export type Match = {
   end: number;
   ruleKey: string;
   wrongText: string;
-  suggested: string;
+  suggested: string[];
 };
 
 // 正規表現で特殊文字をエスケープする補助関数
@@ -40,8 +40,8 @@ function findMatches(text: string, rules: ExpressionsData): Match[] {
           end: match.index + wrong.replace(/\(\?.*\)/, '').length,
           ruleKey: key,
           wrongText: match[0],
-          // 正しい表記は候補の先頭を採用
-          suggested: rule.correct[0],
+          // 正しい表記は配列で持ってくる
+          suggested: rule.correct,
         });
       }
     });
@@ -133,7 +133,7 @@ export default function Home() {
     const groups: {
       [key: string]: {
         count: number;
-        suggested: string;
+        suggested: string[];
         wrongExamples: Set<string>;
       };
     } = {};
@@ -156,7 +156,7 @@ export default function Home() {
     // ※レンダリング時のインデックスに基づく置換。置換後は再レンダリングで再計算される
     setText(
       (prev) =>
-        prev.slice(0, match.start) + match.suggested + prev.slice(match.end),
+        prev.slice(0, match.start) + match.suggested[0] + prev.slice(match.end),
     );
   };
 
@@ -247,7 +247,7 @@ export default function Home() {
                         {group.count}
                       </td>
                       <td className="border border-gray-300 p-2">
-                        {group.suggested}
+                        {group.suggested.join('、')}
                       </td>
                       <td className="border border-gray-300 p-2">
                         <button
