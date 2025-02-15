@@ -63,7 +63,7 @@ function HighlightSpan({
   return (
     <span className="bg-blue-100 cursor-pointer relative group rounded px-1 line-through">
       {children}
-      <div className="absolute z-10 bottom-full left-0 mb-1 hidden group-hover:block">
+      <div className="absolute z-10 bottom-full left-0 mb-1 invisible opacity-0 delay-200 group-hover:opacity-100 group-hover:visible group-hover:delay-0">
         <button
           onClick={(e) => {
             e.stopPropagation();
