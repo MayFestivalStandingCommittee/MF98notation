@@ -1,6 +1,6 @@
 'use client';
 
-import expressions from '@/data/expressions.json';
+import _expressions from '@/data/expressions.json';
 import { useMemo, useState } from 'react';
 
 // 各ルールの型定義
@@ -20,6 +20,8 @@ export type Match = {
   wrongText: string;
   suggested: string[];
 };
+
+const expressions: ExpressionsData = _expressions;
 
 // 正規表現で特殊文字をエスケープする補助関数
 function escapeRegExp(text: string): string {
@@ -53,11 +55,9 @@ function findMatches(text: string, rules: ExpressionsData): Match[] {
 
 // 個別の誤表記を置換できるよう、ホバー時にツールップを表示するコンポーネント
 function HighlightSpan({
-  match,
   children,
   onReplace,
 }: {
-  match: Match;
   children: React.ReactNode;
   onReplace: () => void;
 }) {
@@ -98,7 +98,6 @@ function highlightText(
     nodes.push(
       <HighlightSpan
         key={i}
-        match={match}
         onReplace={() => onReplaceOccurrence(match)}
       >
         {text.substring(match.start, match.end)}
