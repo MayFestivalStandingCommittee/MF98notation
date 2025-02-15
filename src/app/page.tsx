@@ -1,17 +1,10 @@
 'use client';
 
-import _expressions from '@/data/expressions.json';
+import type { ExpressionRule, ExpressionsData } from '@/data/expressions';
+import { expressions } from '@/data/expressions';
 import { useMemo, useState } from 'react';
 
 // 各ルールの型定義
-type ExpressionRule = {
-  wrong: string[];
-  correct: string[];
-};
-
-type ExpressionsData = {
-  [key: string]: ExpressionRule;
-};
 
 export type Match = {
   start: number;
@@ -20,8 +13,6 @@ export type Match = {
   wrongText: string;
   suggested: string[];
 };
-
-const expressions: ExpressionsData = _expressions;
 
 // 正規表現で特殊文字をエスケープする補助関数
 function escapeRegExp(text: string): string {
@@ -96,10 +87,7 @@ function highlightText(
     }
     // 個別置換可能なハイライト部分
     nodes.push(
-      <HighlightSpan
-        key={i}
-        onReplace={() => onReplaceOccurrence(match)}
-      >
+      <HighlightSpan key={i} onReplace={() => onReplaceOccurrence(match)}>
         {text.substring(match.start, match.end)}
       </HighlightSpan>,
     );
