@@ -161,7 +161,7 @@ export const expressions: ExpressionsData = {
   },
   "23": {
     "wrong": [
-      "[at]を@にして",
+      "\\[at\\]を@にして",
       "スパム防止のため",
       "迷惑メール防止のため、"
     ],
@@ -1265,7 +1265,7 @@ export const expressions: ExpressionsData = {
   },
   "160": {
     "wrong": [
-      "時(?=の|は|を|に|で|、)"
+      "時(?=[のはをにで、])"
     ],
     "correct": [
       "とき"
