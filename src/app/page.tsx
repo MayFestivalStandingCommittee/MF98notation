@@ -16,7 +16,7 @@ export type Match = {
 
 // 正規表現で特殊文字をエスケープする補助関数
 function escapeRegExp(text: string): string {
-  return text.replace(/[.[\]]/g, '\\$&');
+  return text.replace(/[.]/g, '\\$&');
 }
 
 // 入力テキスト内の各誤表記のマッチ情報を取得する関数
